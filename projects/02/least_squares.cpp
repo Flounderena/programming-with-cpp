@@ -15,6 +15,7 @@
 #include <tuple>
 #include <vector>
 
+
 struct Point
 {
   double x, y;
@@ -56,6 +57,7 @@ struct Coeff
   }
 };
 
+
 auto least_squares (const std::vector<Point>& points)
 {
   // compute average values
@@ -63,19 +65,26 @@ auto least_squares (const std::vector<Point>& points)
   double x_ave = 0., x2_ave = 0.;
   double y_ave = 0., xy_ave = 0.;
 
+  double y2_ave = 0.;
+
   for (const auto& p : points)
   {
     x_ave += p.x;
     x2_ave += p.x * p.x;
     y_ave += p.y;
     xy_ave += p.x * p.y;
+
+    y2_ave += p.y * p.y;
   }
   x_ave /= N;
   x2_ave /= N;
   y_ave /= N;
   xy_ave /= N;
 
+  y2_ave /= N;
+
   // compute linear coefficient estimate
+  
   double b = (xy_ave - x_ave * y_ave) / (x2_ave - x_ave * x_ave);
 
   if (!std::isfinite(b))
@@ -83,12 +92,21 @@ auto least_squares (const std::vector<Point>& points)
 
   // compute constant coefficient estimate
   double a = y_ave - b * x_ave;
+  
+  double da = 0., db = 0.;
 
-  return std::make_tuple(Coeff{a, 0.}, Coeff{b, 0.});
+  db = sqrt((((y2_ave - y_ave * y_ave) / (x2_ave - x_ave * x_ave)) - b * b) / (N - 2));
+  da = sqrt(db * db * x2_ave);
+
+  return std::make_tuple(Coeff{a, da}, Coeff{b, db});
 }
 
 int main (int argc, char* argv[])
 {
+  argc = 2;
+  argv[1] = "D:/1_cource/programming-with-cpp/projects/02/line_approx.txt";
+  // argv[1] = "D:/1_cource/programming-with-cpp/projects/02/line_exact.txt";
+
   if (argc != 2)
   {
     std::cerr << "usage: " << argv[0] << "  file_with_data" << std::endl;
@@ -98,7 +116,7 @@ int main (int argc, char* argv[])
   try
   {
     std::string datafile{argv[1]};
-
+    // if, который решает, двухпараметрическая прямая или однопараметрическая, меняет bool и он вызывает формулу
     auto [a, b] = least_squares(read(datafile));  // C++17
 
     std::cout << datafile << "  " << a.value << " " << a.delta << "  "
